@@ -11,7 +11,7 @@ Rather than reading the readme, I recommend you just look at the doctests in the
     @lru_cache_function(max_size=1024, expiration=15*60)
     def f(x):
         print "Calling f(" + str(x) + ")"
-	return x
+        return x
 
     f(3) # This will print "Calling f(3)", will return 3
     f(3) # This will not print anything, but will return 3 (unless 15 minutes have passed between the first and second function call).
