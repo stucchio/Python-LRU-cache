@@ -172,12 +172,12 @@ class LRUCachedFunction(object):
         self.__name__ = self.function.__name__
 
     def __call__(self, *args, **kwargs):
-        key = repr( (args, kwargs) )
+        key = repr( (args, kwargs) ) + "#" + self.__name__ #In principle a python repr(...) should not return any # characters.
         try:
-            return self.cache[key+self.__name__]
+            return self.cache[key]
         except KeyError:
             value = self.function(*args, **kwargs)
-            self.cache[key+self.__name__] = value
+            self.cache[key] = value
             return value
 
 if __name__ == "__main__":
