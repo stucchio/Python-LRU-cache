@@ -174,10 +174,10 @@ class LRUCachedFunction(object):
     def __call__(self, *args, **kwargs):
         key = repr( (args, kwargs) )
         try:
-            return self.cache[key]
+            return self.cache[key+self.__name__]
         except KeyError:
             value = self.function(*args, **kwargs)
-            self.cache[key] = value
+            self.cache[key+self.__name__] = value
             return value
 
 if __name__ == "__main__":
