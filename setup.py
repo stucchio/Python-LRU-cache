@@ -4,7 +4,7 @@ from distutils.core import setup
 from setuptools import find_packages
 
 
-setup(name='lru_cache',
+setup(name='py_lru_cache',
       version='0.1',
       description='LRU cache',
       author='Chris Stucchio',
