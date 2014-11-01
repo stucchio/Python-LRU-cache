@@ -1,6 +1,9 @@
 from collections import OrderedDict
-from time import time
+import time
 from itertools import islice
+import threading
+import weakref
+from contextlib import contextmanager
 
 def lru_cache_function(max_size=1024, expiration=15*60):
     """
@@ -18,6 +21,19 @@ def lru_cache_function(max_size=1024, expiration=15*60):
         return LRUCachedFunction(func, LRUCacheDict(max_size, expiration))
     return wrapper
 
+def _lock_decorator(func):
+    """
+    If the LRUCacheDict is concurrent, then we should lock in order to avoid
+    conflicts with threading, or the ThreadTrigger.
+    """
+    def withlock(self, *args, **kwargs):
+        if self.concurrent:
+            with self._rlock:
+                return func(self, *args, **kwargs)
+        else:
+            return func(self, *args, **kwargs)
+    withlock.__name__ == func.__name__
+    return withlock
 
 class LRUCacheDict(object):
     """ A dictionary-like object, supporting LRU caching semantics.
@@ -40,18 +56,57 @@ class LRUCacheDict(object):
     Traceback (most recent call last):
         ...
     KeyError: 'a'
+
+    By default, this cache will only expire items whenever you poke it - all methods on
+    this class will result in a cleanup. If the thread_clear option is specified, a background
+    thread will clean it up every thread_clear_min_check seconds.
+
+    If this class must be used in a multithreaded environment, the option concurrent should be
+    set to true. Note that the cache will always be concurrent if a background cleanup thread
+    is used.
     """
-    def __init__(self, max_size=1024, expiration=15*60):
+    def __init__(self, max_size=1024, expiration=15*60, thread_clear=False, thread_clear_min_check=60, concurrent=False):
         self.max_size = max_size
         self.expiration = expiration
 
         self.__values = {}
         self.__expire_times = OrderedDict()
         self.__access_times = OrderedDict()
+        self.thread_clear = thread_clear
+        self.concurrent = concurrent or thread_clear
+        if thread_clear:
+            t = self.EmptyCacheThread(self)
+            t.start()
+        if self.concurrent:
+            self._rlock = threading.RLock()
 
+    class EmptyCacheThread(threading.Thread):
+        daemon = True
+
+        def __init__(self, cache, peek_duration=60):
+            me = self
+            def kill_self(o):
+                me
+            self.ref = weakref.ref(cache)
+            self.peek_duration = peek_duration
+            super(LRUCacheDict.ThreadTrigger,self).__init__()
+
+        def run(self):
+            while self.ref():
+                c = self.ref()
+                if c:
+                    next_expire = c.cleanup()
+                    if (next_expire is None):
+                        time.sleep(self.peek_duration)
+                    else:
+                        time.sleep(next_expire+1)
+                c = None
+
+    @_lock_decorator
     def size(self):
         return len(self.__values)
 
+    @_lock_decorator
     def clear(self):
         """
         Clears the dict.
@@ -70,6 +125,7 @@ class LRUCacheDict(object):
         self.__expire_times.clear()
         self.__access_times.clear()
 
+    @_lock_decorator
     def has_key(self, key):
         """
         This method should almost NEVER be used. The reason is that between the time
@@ -91,36 +147,42 @@ class LRUCacheDict(object):
         """
         return self.__values.has_key(key)
 
+    @_lock_decorator
     def __setitem__(self, key, value):
-        t = int(time())
+        t = int(time.time())
         self.__delete__(key)
         self.__values[key] = value
         self.__access_times[key] = t
         self.__expire_times[key] = t + self.expiration
         self.cleanup()
 
+    @_lock_decorator
     def __getitem__(self, key):
-        t = int(time())
+        t = int(time.time())
         del self.__access_times[key]
         self.__access_times[key] = t
         self.cleanup()
         return self.__values[key]
 
+    @_lock_decorator
     def __delete__(self, key):
         if self.__values.has_key(key):
             del self.__values[key]
             del self.__expire_times[key]
             del self.__access_times[key]
 
+    @_lock_decorator
     def cleanup(self):
         if self.expiration is None:
             return None
-        t = int(time())
+        t = int(time.time())
         #Delete expired
+        next_expire = None
         for k in self.__expire_times.iterkeys():
             if self.__expire_times[k] < t:
                 self.__delete__(k)
             else:
+                next_expire = self.__expire_times[k]
                 break
 
         #If we have more than self.max_size items, delete the oldest
@@ -128,6 +190,10 @@ class LRUCacheDict(object):
             for k in self.__access_times.iterkeys():
                 self.__delete__(k)
                 break
+        if not (next_expire is None):
+            return next_expire - t
+        else:
+            return None
 
 class LRUCachedFunction(object):
     """
