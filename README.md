@@ -30,6 +30,16 @@ time.sleep(4) # 4 seconds > 3 second cache expiry of d
 print d['foo'] # KeyError
 ```
 
+In order to configure the decorator in a more detailed manner, or share a cache across fnuctions, one can create a cache and pass it in as an argument to the cached function decorator:
+
+```python
+d = LRUCacheDict(max_size=3, expiration=3, thread_clear=True)
+
+@lru_cache_function(cache=d)
+def f(x):
+    return x/2
+```
+
 The doctests in the code provide more examples.
 
 ## Installation
@@ -38,7 +48,7 @@ The doctests in the code provide more examples.
 pip install pylru
 ```
 
-## When does eviction occur?
+## When does cache eviction occur?
 
 By default, this cache will only expire items whenever you poke it - all methods on this class will result in a cleanup.
 
