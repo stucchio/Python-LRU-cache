@@ -74,11 +74,11 @@ class LRUCacheDict(object):
         self.__access_times = OrderedDict()
         self.thread_clear = thread_clear
         self.concurrent = concurrent or thread_clear
+        if self.concurrent:
+            self._rlock = threading.RLock()
         if thread_clear:
             t = self.EmptyCacheThread(self)
             t.start()
-        if self.concurrent:
-            self._rlock = threading.RLock()
 
     class EmptyCacheThread(threading.Thread):
         daemon = True
@@ -89,7 +89,7 @@ class LRUCacheDict(object):
                 me
             self.ref = weakref.ref(cache)
             self.peek_duration = peek_duration
-            super(LRUCacheDict.ThreadTrigger,self).__init__()
+            super(LRUCacheDict.EmptyCacheThread, self).__init__()
 
         def run(self):
             while self.ref():
