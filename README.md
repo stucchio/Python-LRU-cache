@@ -45,7 +45,7 @@ The doctests in the code provide more examples.
 ## Installation
 
 ```bash
-pip install pylru
+pip install py_lru_cache
 ```
 
 ## When does cache eviction occur?
