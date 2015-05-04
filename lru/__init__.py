@@ -125,6 +125,9 @@ class LRUCacheDict(object):
         self.__expire_times.clear()
         self.__access_times.clear()
 
+    def __contains__(self, key):
+        return self.has_key(key)
+        
     @_lock_decorator
     def has_key(self, key):
         """
@@ -145,7 +148,7 @@ class LRUCacheDict(object):
         ...
         KeyError: 'foo'
         """
-        return self.__values.has_key(key)
+        return key in self.__values
 
     @_lock_decorator
     def __setitem__(self, key, value):
@@ -166,7 +169,7 @@ class LRUCacheDict(object):
 
     @_lock_decorator
     def __delete__(self, key):
-        if self.__values.has_key(key):
+        if key in self.__values:
             del self.__values[key]
             del self.__expire_times[key]
             del self.__access_times[key]
