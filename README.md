@@ -55,3 +55,7 @@ By default, this cache will only expire items whenever you poke it - all methods
 If the `thread_clear` option is specified, a background thread will clean it up every `thread_clear_min_check seconds`.
 
 If this class must be used in a multithreaded environment, the option `concurrent` should be set to `True`. Note that the cache will always be concurrent if a background cleanup thread is used.
+
+## Usage in Python3
+
+Note that this module should probably not be used in python3 projects, since the [standard library already has one](https://docs.python.org/3/library/functools.html). The only feature this one has which that one lacks is timed eviction.
