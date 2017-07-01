@@ -153,7 +153,7 @@ class LRUCacheDict(object):
     @_lock_decorator
     def __setitem__(self, key, value):
         t = int(time.time())
-        self.__delete__(key)
+        self.__delitem__(key)
         self.__values[key] = value
         self.__access_times[key] = t
         self.__expire_times[key] = t + self.expiration
@@ -168,7 +168,7 @@ class LRUCacheDict(object):
         return self.__values[key]
 
     @_lock_decorator
-    def __delete__(self, key):
+    def __delitem__(self, key):
         if key in self.__values:
             del self.__values[key]
             del self.__expire_times[key]
@@ -183,7 +183,7 @@ class LRUCacheDict(object):
         next_expire = None
         for k in self.__expire_times:
             if self.__expire_times[k] < t:
-                self.__delete__(k)
+                self.__delitem__(k)
             else:
                 next_expire = self.__expire_times[k]
                 break
@@ -191,7 +191,7 @@ class LRUCacheDict(object):
         #If we have more than self.max_size items, delete the oldest
         while (len(self.__values) > self.max_size):
             for k in self.__access_times:
-                self.__delete__(k)
+                self.__delitem__(k)
                 break
         if not (next_expire is None):
             return next_expire - t
