@@ -5,7 +5,8 @@ import threading
 import weakref
 from contextlib import contextmanager
 
-def lru_cache_function(max_size=1024, expiration=15*60):
+
+def lru_cache_function(max_size=1024, expiration=15 * 60):
     """
     >>> @lru_cache_function(3, 1)
     ... def f(x):
@@ -17,23 +18,29 @@ def lru_cache_function(max_size=1024, expiration=15*60):
     >>> f(3)
     3
     """
+
     def wrapper(func):
         return LRUCachedFunction(func, LRUCacheDict(max_size, expiration))
+
     return wrapper
+
 
 def _lock_decorator(func):
     """
     If the LRUCacheDict is concurrent, then we should lock in order to avoid
     conflicts with threading, or the ThreadTrigger.
     """
+
     def withlock(self, *args, **kwargs):
         if self.concurrent:
             with self._rlock:
                 return func(self, *args, **kwargs)
         else:
             return func(self, *args, **kwargs)
+
     withlock.__name__ == func.__name__
     return withlock
+
 
 class LRUCacheDict(object):
     """ A dictionary-like object, supporting LRU caching semantics.
@@ -65,7 +72,9 @@ class LRUCacheDict(object):
     set to true. Note that the cache will always be concurrent if a background cleanup thread
     is used.
     """
-    def __init__(self, max_size=1024, expiration=15*60, thread_clear=False, thread_clear_min_check=60, concurrent=False):
+
+    def __init__(self, max_size=1024, expiration=15 * 60, thread_clear=False, thread_clear_min_check=60,
+                 concurrent=False):
         self.max_size = max_size
         self.expiration = expiration
 
@@ -85,8 +94,10 @@ class LRUCacheDict(object):
 
         def __init__(self, cache, peek_duration=60):
             me = self
+
             def kill_self(o):
                 me
+
             self.ref = weakref.ref(cache)
             self.peek_duration = peek_duration
             super(LRUCacheDict.EmptyCacheThread, self).__init__()
@@ -99,7 +110,7 @@ class LRUCacheDict(object):
                     if (next_expire is None):
                         time.sleep(self.peek_duration)
                     else:
-                        time.sleep(next_expire+1)
+                        time.sleep(next_expire + 1)
                 c = None
 
     @_lock_decorator
@@ -127,7 +138,7 @@ class LRUCacheDict(object):
 
     def __contains__(self, key):
         return self.has_key(key)
-        
+
     @_lock_decorator
     def has_key(self, key):
         """
@@ -179,24 +190,34 @@ class LRUCacheDict(object):
         if self.expiration is None:
             return None
         t = int(time.time())
-        #Delete expired
+        # Delete expired
+        keys_to_delete = []
         next_expire = None
         for k in self.__expire_times:
             if self.__expire_times[k] < t:
-                self.__delete__(k)
+                keys_to_delete.append(k)
             else:
                 next_expire = self.__expire_times[k]
                 break
 
-        #If we have more than self.max_size items, delete the oldest
-        while (len(self.__values) > self.max_size):
+        for k in keys_to_delete:
+            self.__delete__(k)
+
+        keys_to_delete = []
+        # If we have more than self.max_size items, delete the oldest
+        while len(self.__values) > self.max_size:
             for k in self.__access_times:
-                self.__delete__(k)
+                keys_to_delete.append(k)
                 break
+
+        for k in keys_to_delete:
+            self.__delete__(k)
+
         if not (next_expire is None):
             return next_expire - t
         else:
             return None
+
 
 class LRUCachedFunction(object):
     """
@@ -232,6 +253,7 @@ class LRUCachedFunction(object):
     4
 
     """
+
     def __init__(self, function, cache=None):
         if cache:
             self.cache = cache
@@ -241,7 +263,8 @@ class LRUCachedFunction(object):
         self.__name__ = self.function.__name__
 
     def __call__(self, *args, **kwargs):
-        key = repr( (args, kwargs) ) + "#" + self.__name__ #In principle a python repr(...) should not return any # characters.
+        key = repr(
+            (args, kwargs)) + "#" + self.__name__  # In principle a python repr(...) should not return any # characters.
         try:
             return self.cache[key]
         except KeyError:
@@ -249,6 +272,8 @@ class LRUCachedFunction(object):
             self.cache[key] = value
             return value
 
+
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()
