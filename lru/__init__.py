@@ -5,7 +5,7 @@ import threading
 import weakref
 from contextlib import contextmanager
 
-def lru_cache_function(max_size=1024, expiration=15*60):
+def lru_cache_function(**lru_cache_dict_kwargs):
     """
     >>> @lru_cache_function(3, 1)
     ... def f(x):
@@ -18,7 +18,7 @@ def lru_cache_function(max_size=1024, expiration=15*60):
     3
     """
     def wrapper(func):
-        return LRUCachedFunction(func, LRUCacheDict(max_size, expiration))
+        return LRUCachedFunction(func, LRUCacheDict(**lru_cache_dict_kwargs))
     return wrapper
 
 def _lock_decorator(func):
