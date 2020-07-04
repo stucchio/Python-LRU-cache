@@ -9,7 +9,7 @@ def lru_cache_function(max_size=1024, expiration=15*60, **kwargs):
     """
     >>> @lru_cache_function(max_size=3, expiration=1)
     ... def f(x):
-    ...    print "Calling f(" + str(x) + ")"
+    ...    print("Calling f(" + str(x) + ")")
     ...    return x
     >>> f(3)
     Calling f(3)
@@ -204,7 +204,7 @@ class LRUCachedFunction(object):
     A memoized function, backed by an LRU cache.
 
     >>> def f(x):
-    ...    print "Calling f(" + str(x) + ")"
+    ...    print("Calling f(" + str(x) + ")")
     ...    return x
     >>> f = LRUCachedFunction(f, LRUCacheDict(max_size=3, expiration=3) )
     >>> f(3)
