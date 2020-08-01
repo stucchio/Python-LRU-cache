@@ -1,3 +1,5 @@
+* `master` branch build status: ![Travis CI build status](https://api.travis-ci.org/stucchio/Python-LRU-cache.svg?branch=master)
+
 # Introduction
 
 It's often useful to have an in-memory cache. Of course, it's also desirable not to have the cache grow too large, and cache expiration is often desirable.
